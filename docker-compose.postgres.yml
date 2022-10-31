@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  db:
+    container_name: postgres
+    image: postgres:14
+    volumes:
+      - ./docker/pg:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test_db
+    ports:
+      - '5432:5432'
