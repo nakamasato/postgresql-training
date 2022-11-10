@@ -1,7 +1,9 @@
 import argparse
+import csv
 import datetime
+import os
 import random
-from unicodedata import category
+import time
 import uuid
 from random import normalvariate, randrange
 
@@ -11,22 +13,23 @@ dsn = "dbname=test_db host=localhost user=postgres password=postgres"
 startDate = datetime.datetime(2021, 1, 20, 13, 00)
 now = datetime.datetime.now()
 days = (now - startDate).days
+CHUNKSIZE = 100
 
 
 def generate_items(n):
     rows = []
     for i in range(n):
         item_id = generate_id()
-        created_at = random_date(startDate)  # .strftime("%Y-%m-%d %H:%M:%S")
+        created_at = random_date(startDate).strftime("%Y-%m-%d %H:%M:%S")
         name = f"item-{i}"
         status = random.randint(1, 3)
         rows.append(
-            (
+            [
                 item_id,  # id serial PRIMARY KEY
                 name,  # name VARCHAR ( 50 ) UNIQUE NOT NULL
                 status,  # status SMALLINT NOT NULL
                 created_at,  # created_on TIMESTAMP NOT NULL
-            )
+            ]
         )
     return rows
 
@@ -35,14 +38,14 @@ def generate_categories(n):
     rows = []
     for i in range(n):
         category_id = f"category-{i}"
-        created_at = random_date(startDate)  # .strftime("%Y-%m-%d %H:%M:%S")
+        created_at = random_date(startDate).strftime("%Y-%m-%d %H:%M:%S")
         name = f"category-{i}"
         rows.append(
-            (
+            [
                 category_id,  # id text NOT NULL PRIMARY KEY,
                 name,  # name VARCHAR(50) UNIQUE NOT NULL,
                 created_at,  # TIMESTAMP NOT NULL
-            )
+            ]
         )
     return rows
 
@@ -51,9 +54,16 @@ def insert(table, rows):
     num_of_fields = len(rows[0])
     with psycopg2.connect(dsn) as conn:
         with conn.cursor() as cur:
-            cur.executemany(
-                f"INSERT INTO {table} VALUES({','.join(['%s'] * num_of_fields)})", rows
-            )
+            for i in range(0, len(rows), CHUNKSIZE):
+                cur.executemany(
+                    f"INSERT INTO {table} VALUES({','.join(['%s'] * num_of_fields)})",
+                    rows[i : i + CHUNKSIZE],
+                )
+
+
+def insert_csv(table, csv):
+    cmd = f"docker exec -i postgres psql -U postgres test_db -c \"\copy {table} from STDIN with DELIMITER ','\" < {csv}"
+    os.system(cmd)
 
 
 def get_item_ids_as_generator():
@@ -61,14 +71,14 @@ def get_item_ids_as_generator():
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM items;")
             for row in cur:
-                yield row
+                yield row[0]
 
 
 def get_category_ids():
     with psycopg2.connect(dsn) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM categories;")
-            return cur.fetchall()
+            return [row[0] for row in cur.fetchall()]
 
 
 def truncate():
@@ -140,6 +150,12 @@ def normal_choice(lst, mean=None, stddev=None):
             return lst[index]
 
 
+def write_to_csv(rows, filename):
+    with open(filename, "w") as f:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument(
@@ -161,18 +177,26 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
+    ts = time.time()
     truncate()
-    print("truncated")
+    print(f"truncated. {time.time() - ts:.2f}")
+
+    tmp_data_csv = "data.csv"
 
     rows = generate_items(args.number_of_items)
-    insert("items", rows)
-    print(f"inserted {len(rows)} items")
+    write_to_csv(rows, tmp_data_csv)
+    print(f"generated {len(rows)} items. {time.time() - ts:.2f}")
+    insert_csv("items", tmp_data_csv)
+    print(f"inserted {len(rows)} items. {time.time() - ts:.2f}")
 
     rows = generate_categories(args.number_of_categories)
-    insert("categories", rows)
-    print(f"inserted {len(rows)} categories")
+    write_to_csv(rows, tmp_data_csv)
+    print(f"generated {len(rows)} categories. {time.time() - ts:.2f}")
+    insert_csv("categories", tmp_data_csv)
+    print(f"inserted {len(rows)} categories. {time.time() - ts:.2f}")
 
     rows = generate_item_categories()
-    insert("item_categories", rows)
-    print(f"inserted {len(rows)} item_categories")
+    write_to_csv(rows, tmp_data_csv)
+    print(f"generated {len(rows)} item_categories. {time.time() - ts:.2f}")
+    insert_csv("item_categories", tmp_data_csv)
+    print(f"inserted {len(rows)} item_categories. {time.time() - ts:.2f}")
