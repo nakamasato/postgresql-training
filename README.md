@@ -105,7 +105,7 @@
     <details>
 
     ```
-    docker exec -i postgres psql -U postgres test_db -c "select to_char(created_at, 'YYYY-mm'), count(*) from     items group by to_char(created_at, 'YYYY-mm')"
+    docker exec -i postgres psql -U postgres test_db -c "select to_char(created_at, 'YYYY-mm'), count(*) from items group by to_char(created_at, 'YYYY-mm')"
 
      to_char | count
     ---------+--------
@@ -268,7 +268,8 @@ ORDER BY i.created_at DESC, i.id DESC
 LIMIT 30
 ```
 
-### 0. Baseline
+### 0. Baseline (381ms)
+
 
 ```sql
 docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
@@ -392,87 +393,96 @@ docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id
 `i.status in (1)` is added to the query above:
 
 ```sql
-SELECT
-      i.id, i.created_at
+SELECT i.id, i.created_at
 FROM items i
 JOIN item_categories ic
 ON i.id = ic.item_id
 WHERE i.status IN (1)
 AND ic.category_id IN ('category-1', 'category-2', 'category-3')
-AND (i.created_at < '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') )
+AND (i.created_at < '2022-01-01' OR (i.created_at = '2021-01-01' AND i.id < 'test'))
 ORDER BY i.created_at DESC, i.id DESC
 LIMIT 30
 ```
 
-### 0. Baseline (26s)
+### 0. Baseline (24s)
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
                                                                                                     QUERY PLAN
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=41.61..1260.99 rows=30 width=45) (actual time=26295.151..26295.159 rows=30 loops=1)
-   ->  Incremental Sort  (cost=41.61..3543729.74 rows=87184 width=45) (actual time=26295.151..26295.152 rows=30 loops=1)
+ Limit  (cost=37.54..1134.78 rows=30 width=45) (actual time=24527.139..24527.148 rows=30 loops=1)
+   ->  Incremental Sort  (cost=37.54..4368770.52 rows=119446 width=45) (actual time=24527.138..24527.141 rows=30 loops=1)
          Sort Key: i.created_at DESC, i.id DESC
          Presorted Key: i.created_at
          Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 27kB  Peak Memory: 27kB
-         ->  Nested Loop  (cost=1.00..3539806.46 rows=87184 width=45) (actual time=26233.425..26295.077 rows=31 loops=1)
-               ->  Index Scan Backward using items_created_at on items i  (cost=0.43..846283.83 rows=1286531 width=45) (actual time=26231.500..26242.416 rows=672 loops=1)
-                     Filter: ((status = 1) AND ((created_at < '2021-10-01 00:00:00'::timestamp without time zone) OR ((created_at = '2022-01-01 00:00:00'::timestamp without time zone) AND (id < 'test'::text))))
-                     Rows Removed by Filter: 6094460
-               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..2.08 rows=1 width=37) (actual time=0.077..0.077 rows=0 loops=672)
+         ->  Nested Loop  (cost=1.00..4363395.45 rows=119446 width=45) (actual time=24501.843..24527.052 rows=31 loops=1)
+               ->  Index Scan Backward using items_created_at on items i  (cost=0.43..846283.83 rows=1762594 width=45) (actual time=24501.268..24507.501 rows=362 loops=1)
+                     Filter: ((status = 1) AND ((created_at < '2022-01-01 00:00:00'::timestamp without time zone) OR ((created_at = '2022-01-01 00:00:00'::timestamp without time zone) AND (id < 'test'::text))))
+                     Rows Removed by Filter: 4675811
+               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..1.99 rows=1 width=37) (actual time=0.051..0.052 rows=0 loops=362)
                      Index Cond: ((category_id = ANY ('{category-1,category-2,category-3}'::text[])) AND (item_id = i.id))
                      Heap Fetches: 0
- Planning Time: 6.809 ms
- Execution Time: 26295.235 ms
+ Planning Time: 6.728 ms
+ Execution Time: 24527.310 ms
 (14 rows)
 ```
 
-### 1. Create an index on `items(status, created_at)` (26s → 8s)
+### 1. Create an index on `items(status, created_at)` (24s → 7s)
 
 Create a new index:
 ```
 docker exec -i postgres psql -U postgres test_db -c "CREATE INDEX IF NOT EXISTS items_status_created_at_idx ON items(status, created_at);"
 ```
 
+<details><summary>drop index</summary>
+
+If you want to drop the index for comparison:
+
+```
+docker exec -i postgres psql -U postgres test_db -c "drop INDEX IF EXISTS items_status_created_at_idx;"
+```
+
+</details>
+
 Run the query:
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
                                                                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=38.36..1160.27 rows=30 width=45) (actual time=8307.010..8307.014 rows=30 loops=1)
-   ->  Incremental Sort  (cost=38.36..3260461.44 rows=87184 width=45) (actual time=8307.010..8307.011 rows=30 loops=1)
+ Limit  (cost=35.16..1061.27 rows=30 width=45) (actual time=7470.450..7470.455 rows=30 loops=1)
+   ->  Incremental Sort  (cost=35.16..4085502.22 rows=119446 width=45) (actual time=7470.449..7470.451 rows=30 loops=1)
          Sort Key: i.created_at DESC, i.id DESC
          Presorted Key: i.created_at
          Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 27kB  Peak Memory: 27kB
-         ->  Nested Loop  (cost=1.00..3256538.16 rows=87184 width=45) (actual time=8050.728..8306.928 rows=31 loops=1)
-               ->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..563015.53 rows=1286531 width=45) (actual time=8033.960..8037.657 rows=672 loops=1)
+         ->  Nested Loop  (cost=1.00..4080127.15 rows=119446 width=45) (actual time=7449.225..7470.379 rows=31 loops=1)
+               ->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..563015.53 rows=1762594 width=45) (actual time=7445.111..7447.027 rows=362 loops=1)
                      Index Cond: (status = 1)
-                     Filter: ((created_at < '2021-10-01 00:00:00'::timestamp without time zone) OR ((created_at = '2022-01-01 00:00:00'::timestamp without time zone) AND (id < 'test'::text)))
-                     Rows Removed by Filter: 2032450
-               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..2.08 rows=1 width=37) (actual time=0.397..0.399 rows=0 loops=672)
+                     Filter: ((created_at < '2022-01-01 00:00:00'::timestamp without time zone) OR ((created_at = '2022-01-01 00:00:00'::timestamp without time zone) AND (id < 'test'::text)))
+                     Rows Removed by Filter: 1559539
+               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..1.99 rows=1 width=37) (actual time=0.062..0.063 rows=0 loops=362)
                      Index Cond: ((category_id = ANY ('{category-1,category-2,category-3}'::text[])) AND (item_id = i.id))
                      Heap Fetches: 0
- Planning Time: 1.863 ms
- Execution Time: 8307.075 ms
+ Planning Time: 3.098 ms
+ Execution Time: 7470.549 ms
 (15 rows)
 ```
 
 The new index `items_status_created_at_idx` is used.
 
-### 2. `(i.created_at < '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test'))` row-wise comparison (8s → 46ms)
+### 2. `(i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test'))` row-wise comparison (8s → 46ms)
 
-Interestingly, `(i.created_at < '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') )` is the part that makes the query slow.
+Interestingly, `(i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') )` is the part that makes the query slow.
 
 ```sql
-->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..563015.53 rows=1286531 width=45) (actual time=8033.960..8037.657 rows=672 loops=1)
+->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..563015.53 rows=1762594 width=45) (actual time=7445.111..7447.027 rows=362 loops=1)
       Index Cond: (status = 1)
-      Filter: ((created_at < '2021-10-01 00:00:00'::timestamp without time zone) OR ((created_at = '2022-01-01 00:00:00'::timestamp without time zone) AND (id < 'test'::text)))
-      Rows Removed by Filter: 2032450
+      Filter: ((created_at < '2022-01-01 00:00:00'::timestamp without time zone) OR ((created_at = '2022-01-01 00:00:00'::timestamp without time zone) AND (id < 'test'::text)))
+      Rows Removed by Filter: 1559539
 ```
 
 The index condition: `status = 1`
 Filter: `created_at` andd `id`
-Rows Removed by Filter: `2032450`
+Rows Removed by Filter: `1559539`
 
 `Where`:
 1. **Access Predicate** (`Index Cond`): The access predicates express the start and stop conditions of the leaf node traversal.
@@ -482,27 +492,27 @@ Rows Removed by Filter: `2032450`
 
 You can see the result with the query without either of the before or after `OR` ([ref](https://dba.stackexchange.com/questions/241591/postgres-choosing-a-filter-instead-of-index-cond-when-or-is-involved)):
 
-Only `(i.created_at < '2021-10-01' )`: `53ms`
+Only `(i.created_at < '2022-01-01' )`: `53ms`
 
 <details>
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2021-10-01' ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' ) order by i.created_at desc, i.id desc limit 30"
                                                                                       QUERY PLAN
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=37.33..1128.56 rows=30 width=45) (actual time=53.163..53.167 rows=30 loops=1)
-   ->  Incremental Sort  (cost=37.33..3171294.34 rows=87184 width=45) (actual time=53.162..53.163 rows=30 loops=1)
+ Limit  (cost=34.56..1042.56 rows=30 width=45) (actual time=35.202..35.207 rows=30 loops=1)
+   ->  Incremental Sort  (cost=34.56..4013407.91 rows=119446 width=45) (actual time=35.201..35.203 rows=30 loops=1)
          Sort Key: i.created_at DESC, i.id DESC
          Presorted Key: i.created_at
          Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 27kB  Peak Memory: 27kB
-         ->  Nested Loop  (cost=1.00..3167371.06 rows=87184 width=45) (actual time=6.565..53.008 rows=31 loops=1)
-               ->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..473848.43 rows=1286531 width=45) (actual time=0.708..9.179 rows=672 loops=1)
-                     Index Cond: ((status = 1) AND (created_at < '2021-10-01 00:00:00'::timestamp without time zone))
-               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..2.08 rows=1 width=37) (actual time=0.064..0.064 rows=0 loops=672)
+         ->  Nested Loop  (cost=1.00..4008032.84 rows=119446 width=45) (actual time=0.445..35.054 rows=31 loops=1)
+               ->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..490921.22 rows=1762594 width=45) (actual time=0.196..8.728 rows=362 loops=1)
+                     Index Cond: ((status = 1) AND (created_at < '2022-01-01 00:00:00'::timestamp without time zone))
+               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..1.99 rows=1 width=37) (actual time=0.069..0.071 rows=0 loops=362)
                      Index Cond: ((category_id = ANY ('{category-1,category-2,category-3}'::text[])) AND (item_id = i.id))
                      Heap Fetches: 0
- Planning Time: 2.041 ms
- Execution Time: 53.734 ms
+ Planning Time: 5.499 ms
+ Execution Time: 35.360 ms
 (13 rows)
 ```
 
@@ -534,30 +544,30 @@ docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id
 
 </details>
 
-You can improve the query `(i.created_at < '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test'))` to `(i.created_at, id) < ('2021-10-01', 'test')`
+You can improve the query `(i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test'))` to `(i.created_at, id) < ('2022-01-01', 'test')`
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at, id) < ('2021-10-01', 'test') order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at, i.id) < ('2022-01-01', 'test') order by i.created_at desc, i.id desc limit 30"
 ```
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at, i.id) < ('2021-10-01', 'test') order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at, i.id) < ('2022-01-01', 'test') order by i.created_at desc, i.id desc limit 30"
                                                                                       QUERY PLAN
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=37.41..1130.85 rows=30 width=45) (actual time=46.584..46.587 rows=30 loops=1)
-   ->  Incremental Sort  (cost=37.41..3177726.99 rows=87184 width=45) (actual time=46.584..46.585 rows=30 loops=1)
+ Limit  (cost=34.63..1044.84 rows=30 width=45) (actual time=41.025..41.030 rows=30 loops=1)
+   ->  Incremental Sort  (cost=34.63..4022220.90 rows=119446 width=45) (actual time=41.023..41.026 rows=30 loops=1)
          Sort Key: i.created_at DESC, i.id DESC
          Presorted Key: i.created_at
          Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 27kB  Peak Memory: 27kB
-         ->  Nested Loop  (cost=1.00..3173803.71 rows=87184 width=45) (actual time=2.727..46.502 rows=31 loops=1)
-               ->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..480281.08 rows=1286531 width=45) (actual time=1.853..12.102 rows=672 loops=1)
-                     Index Cond: ((status = 1) AND (created_at <= '2021-10-01 00:00:00'::timestamp without time zone))
-                     Filter: (ROW(created_at, id) < ROW('2021-10-01 00:00:00'::timestamp without time zone, 'test'::text))
-               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..2.08 rows=1 width=37) (actual time=0.050..0.050 rows=0 loops=672)
+         ->  Nested Loop  (cost=1.00..4016845.83 rows=119446 width=45) (actual time=0.308..40.879 rows=31 loops=1)
+               ->  Index Scan Backward using items_status_created_at_idx on items i  (cost=0.43..499734.21 rows=1762594 width=45) (actual time=0.103..9.723 rows=362 loops=1)
+                     Index Cond: ((status = 1) AND (created_at <= '2022-01-01 00:00:00'::timestamp without time zone))
+                     Filter: (ROW(created_at, id) < ROW('2022-01-01 00:00:00'::timestamp without time zone, 'test'::text))
+               ->  Index Only Scan using item_categories_cateogory_id_item_id_idx on item_categories ic  (cost=0.56..1.99 rows=1 width=37) (actual time=0.083..0.084 rows=0 loops=362)
                      Index Cond: ((category_id = ANY ('{category-1,category-2,category-3}'::text[])) AND (item_id = i.id))
                      Heap Fetches: 0
- Planning Time: 2.067 ms
- Execution Time: 46.668 ms
+ Planning Time: 2.808 ms
+ Execution Time: 41.172 ms
 (14 rows)
 ```
 
@@ -570,15 +580,16 @@ In our case:
 1. d = 'test'
 
 ```sql
-(i.created_at, id) < ('2021-10-01', 'test')
+(i.created_at, id) < ('2022-10-01', 'test')
 ```
 
 is equivalent to
 
 ```sql
-i.created_at < '2021-10-01' OR (i.created_at = '2021-10-01' AND id < 'test')
+i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND id < 'test')
 ```
 
 # References
-1. https://use-the-index-luke.com/sql/explain-plan/postgresql/filter-predicates
-1. https://dba.stackexchange.com/questions/241591/postgres-choosing-a-filter-instead-of-index-cond-when-or-is-involved
+1. [Distinguishing Access and Filter-Predicates](https://use-the-index-luke.com/sql/explain-plan/postgresql/filter-predicates)
+1. [Postgres choosing a filter instead of index cond when OR is involved](https://dba.stackexchange.com/questions/241591/postgres-choosing-a-filter-instead-of-index-cond-when-or-is-involved)
+1. [Row-wise comparison](https://www.postgresql.org/docs/current/functions-comparisons.html#ROW-WISE-COMPARISON)
