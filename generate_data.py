@@ -10,17 +10,16 @@ from random import normalvariate, randrange
 import psycopg2
 
 dsn = "dbname=test_db host=localhost user=postgres password=postgres"
-startDate = datetime.datetime(2021, 1, 20, 13, 00)
-now = datetime.datetime.now()
-days = (now - startDate).days
+DEFAULT_START_DATE = datetime.datetime(2020, 1, 1, 00, 00)
+DEFAULT_END_DATE = datetime.datetime(2022, 1, 1, 00, 00)
 CHUNKSIZE = 100
 
 
-def generate_items(n):
+def generate_items(n, start_date = DEFAULT_START_DATE, end_date = DEFAULT_END_DATE):
     rows = []
     for i in range(n):
         item_id = generate_id()
-        created_at = random_date(startDate).strftime("%Y-%m-%d %H:%M:%S")
+        created_at = random_date(start_date, end_date).strftime("%Y-%m-%d %H:%M:%S")
         name = f"item-{i}"
         status = random.randint(1, 3)
         rows.append(
@@ -34,11 +33,11 @@ def generate_items(n):
     return rows
 
 
-def generate_categories(n):
+def generate_categories(n, start_date = DEFAULT_START_DATE, end_date = DEFAULT_END_DATE):
     rows = []
     for i in range(n):
         category_id = f"category-{i}"
-        created_at = random_date(startDate).strftime("%Y-%m-%d %H:%M:%S")
+        created_at = random_date(start_date, end_date).strftime("%Y-%m-%d %H:%M:%S")
         name = f"category-{i}"
         rows.append(
             [
@@ -88,15 +87,15 @@ def truncate():
                 cur.execute(f"truncate {table} CASCADE;")
 
 
-def generate_item_categories():
+def generate_item_categories(start_date = DEFAULT_START_DATE, end_date = DEFAULT_END_DATE):
     rows = []
     category_ids = get_category_ids()
     for iid in get_item_ids_as_generator():
         item_category_id = generate_id()
         category_id = normal_choice(category_ids, 10, 5)
         item_id = iid
-        created_at = random_date(startDate)
-        updated_at = random_date(created_at)
+        created_at = random_date(start_date, end_date)
+        updated_at = random_date(created_at, end_date)
         rows.append(
             [
                 item_category_id,  # id character varying NOT NULL,
@@ -120,8 +119,8 @@ def random_bool_str(prob_of_true):
         return "f"
 
 
-def random_date(start):
-    max_days = (now - start).days
+def random_date(start, end):
+    max_days = (end - start).days
     if max_days == 0:
         return start + datetime.timedelta(
             hours=randrange(24), minutes=randrange(60), seconds=randrange(60)
@@ -157,7 +156,7 @@ def write_to_csv(rows, filename):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser = argparse.ArgumentParser(description="Generate data.")
     parser.add_argument(
         "--number-of-items",
         "-i",
@@ -173,7 +172,7 @@ if __name__ == "__main__":
         dest="number_of_categories",
         type=int,
         default=3,
-        help="number of items to generate (default: 10000)",
+        help="number of categories to generate (default: 3)",
     )
 
     args = parser.parse_args()
