@@ -447,7 +447,7 @@ docker exec -i postgres psql -U postgres test_db -c "drop INDEX IF EXISTS items_
 Run the query:
 ```sql
 docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
 
                                                                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -607,7 +607,7 @@ LIMIT 30
 ### Original query seq scan 5s
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND i.created_at < '2022-01-01' ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND i.created_at < '2022-01-01' ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                             QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=502562.15..502565.65 rows=30 width=45) (actual time=4724.550..5017.816 rows=30 loops=1)
@@ -644,7 +644,7 @@ This query is slow because sequential scan reads a lot of data and most of them 
 If you move the time condition, postgresl uses bitmap index scan, but still
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i JOIN item_categories ic ON i.id = ic.item_id AND i.status in (1) AND i.created_at < '2021-05-01' ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id AND i.status in (1) AND i.created_at < '2021-05-01' ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                                      QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=467652.66..467656.16 rows=30 width=45) (actual time=4109.457..4374.930 rows=30 loops=1)
@@ -674,6 +674,90 @@ docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id
    Timing: Generation 8.113 ms, Inlining 0.000 ms, Optimization 8.262 ms, Emission 30.223 ms, Total 46.598 ms
  Execution Time: 4432.604 ms
 (26 rows)
+```
+
+```sql
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id AND i.status in (1) AND i.created_at < '2021-06-01' ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
+                                                                           QUERY PLAN
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=475334.10..475337.60 rows=30 width=45) (actual time=2318.358..2491.448 rows=30 loops=1)
+   ->  Gather Merge  (cost=475334.10..540122.92 rows=555294 width=45) (actual time=2310.603..2483.691 rows=30 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         ->  Sort  (cost=474334.08..475028.19 rows=277647 width=45) (actual time=2276.854..2276.858 rows=23 loops=3)
+               Sort Key: i.created_at DESC, i.id DESC
+               Sort Method: top-N heapsort  Memory: 28kB
+               Worker 0:  Sort Method: top-N heapsort  Memory: 29kB
+               Worker 1:  Sort Method: top-N heapsort  Memory: 28kB
+               ->  Parallel Hash Join  (cost=182047.58..466133.93 rows=277647 width=45) (actual time=1889.570..2255.053 rows=225035 loops=3)
+                     Hash Cond: (ic.item_id = i.id)
+                     ->  Parallel Seq Scan on item_categories ic  (cost=0.00..205601.81 rows=4166681 width=37) (actual time=0.516..616.738 rows=3333333 loops=3)
+                     ->  Parallel Hash  (cost=176136.00..176136.00 rows=277646 width=45) (actual time=509.663..509.663 rows=225035 loops=3)
+                           Buckets: 65536  Batches: 16  Memory Usage: 3872kB
+                           ->  Parallel Seq Scan on items i  (cost=0.00..176136.00 rows=277646 width=45) (actual time=4.843..434.341 rows=225035 loops=3)
+                                 Filter: ((created_at < '2021-06-01 00:00:00'::timestamp without time zone) AND (status = 1))
+                                 Rows Removed by Filter: 3108299
+ Planning Time: 1.608 ms
+ JIT:
+   Functions: 37
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 8.727 ms, Inlining 0.000 ms, Optimization 2.348 ms, Emission 18.744 ms, Total 29.819 ms
+ Execution Time: 2534.532 ms
+(23 rows)
+```
+
+Plan result on different conditions:
+
+```
+for y in 2021 2022; do for m in 01 02 03 04 05 06 07 08 09 10 11 12; do date=$y-$m-01; echo $date; docker exec -i postgres psql -U postgres test_db -c "EXPLAIN (ANALYZE true, COSTS true, FORMAT JSON) SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id AND i.status in (1) AND i.created_at < '$date' ORDER BY i.created_at DESC, i.id DESC LIMIT 30" | grep -v -E '(PLAN|row|---)' | sed 's/+//g' | jq | python analyze_explain.py ; done; done
+2021-01-01
+['Limit', 'Sort', 'Gather', 'Hash Join', 'Seq Scan', 'Hash', 'Index Scan'] 62.268
+2021-02-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Bitmap Heap Scan', 'Bitmap Index Scan'] 1366.469
+2021-03-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Bitmap Heap Scan', 'Bitmap Index Scan'] 1870.557
+2021-04-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Bitmap Heap Scan', 'Bitmap Index Scan'] 1778.247
+2021-05-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Bitmap Heap Scan', 'Bitmap Index Scan'] 1867.227
+2021-06-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 1713.117
+2021-07-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 1802.4
+2021-08-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 1844.695
+2021-09-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 1826.071
+2021-10-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 1876.333
+2021-11-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2049.745
+2021-12-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2600.211
+2022-01-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 1993.115
+2022-02-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2064.793
+2022-03-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2193.47
+2022-04-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2127.528
+2022-05-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2285.128
+2022-06-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 3249.543
+2022-07-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2444.717
+2022-08-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2674.231
+2022-09-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2838.066
+2022-10-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2539.62
+2022-11-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2629.875
+2022-12-01
+['Limit', 'Gather Merge', 'Sort', 'Hash Join', 'Seq Scan', 'Hash', 'Seq Scan'] 2979.772
 ```
 
 # References

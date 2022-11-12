@@ -1,0 +1,192 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Limit",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Startup Cost": 467652.66,
+      "Total Cost": 467656.16,
+      "Plan Rows": 30,
+      "Plan Width": 45,
+      "Actual Startup Time": 2612.698,
+      "Actual Total Time": 2782.297,
+      "Actual Rows": 30,
+      "Actual Loops": 1,
+      "Plans": [
+        {
+          "Node Type": "Gather Merge",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 467652.66,
+          "Total Cost": 517845.7,
+          "Plan Rows": 430196,
+          "Plan Width": 45,
+          "Actual Startup Time": 2606.169,
+          "Actual Total Time": 2775.765,
+          "Actual Rows": 30,
+          "Actual Loops": 1,
+          "Workers Planned": 2,
+          "Workers Launched": 2,
+          "Plans": [
+            {
+              "Node Type": "Sort",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 466652.64,
+              "Total Cost": 467190.38,
+              "Plan Rows": 215098,
+              "Plan Width": 45,
+              "Actual Startup Time": 2575,
+              "Actual Total Time": 2575.042,
+              "Actual Rows": 23,
+              "Actual Loops": 3,
+              "Sort Key": [
+                "i.created_at DESC",
+                "i.id DESC"
+              ],
+              "Sort Method": "top-N heapsort",
+              "Sort Space Used": 29,
+              "Sort Space Type": "Memory",
+              "Workers": [
+                {
+                  "Worker Number": 0,
+                  "Sort Method": "top-N heapsort",
+                  "Sort Space Used": 28,
+                  "Sort Space Type": "Memory"
+                },
+                {
+                  "Worker Number": 1,
+                  "Sort Method": "top-N heapsort",
+                  "Sort Space Used": 28,
+                  "Sort Space Type": "Memory"
+                }
+              ],
+              "Plans": [
+                {
+                  "Node Type": "Hash Join",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": true,
+                  "Async Capable": false,
+                  "Join Type": "Inner",
+                  "Startup Cost": 176763.48,
+                  "Total Cost": 460299.83,
+                  "Plan Rows": 215098,
+                  "Plan Width": 45,
+                  "Actual Startup Time": 2197.627,
+                  "Actual Total Time": 2556.36,
+                  "Actual Rows": 172105,
+                  "Actual Loops": 3,
+                  "Inner Unique": true,
+                  "Hash Cond": "(ic.item_id = i.id)",
+                  "Workers": [],
+                  "Plans": [
+                    {
+                      "Node Type": "Seq Scan",
+                      "Parent Relationship": "Outer",
+                      "Parallel Aware": true,
+                      "Async Capable": false,
+                      "Relation Name": "item_categories",
+                      "Alias": "ic",
+                      "Startup Cost": 0,
+                      "Total Cost": 205601.81,
+                      "Plan Rows": 4166681,
+                      "Plan Width": 37,
+                      "Actual Startup Time": 0.047,
+                      "Actual Total Time": 702.478,
+                      "Actual Rows": 3333333,
+                      "Actual Loops": 3,
+                      "Workers": []
+                    },
+                    {
+                      "Node Type": "Hash",
+                      "Parent Relationship": "Inner",
+                      "Parallel Aware": true,
+                      "Async Capable": false,
+                      "Startup Cost": 172183.76,
+                      "Total Cost": 172183.76,
+                      "Plan Rows": 215098,
+                      "Plan Width": 45,
+                      "Actual Startup Time": 712.85,
+                      "Actual Total Time": 712.852,
+                      "Actual Rows": 172105,
+                      "Actual Loops": 3,
+                      "Hash Buckets": 65536,
+                      "Original Hash Buckets": 65536,
+                      "Hash Batches": 16,
+                      "Original Hash Batches": 16,
+                      "Peak Memory Usage": 3104,
+                      "Workers": [],
+                      "Plans": [
+                        {
+                          "Node Type": "Bitmap Heap Scan",
+                          "Parent Relationship": "Outer",
+                          "Parallel Aware": true,
+                          "Async Capable": false,
+                          "Relation Name": "items",
+                          "Alias": "i",
+                          "Startup Cost": 13139.83,
+                          "Total Cost": 172183.76,
+                          "Plan Rows": 215098,
+                          "Plan Width": 45,
+                          "Actual Startup Time": 80.864,
+                          "Actual Total Time": 656.347,
+                          "Actual Rows": 172105,
+                          "Actual Loops": 3,
+                          "Recheck Cond": "((status = 1) AND (created_at < '2021-05-01 00:00:00'::timestamp without time zone))",
+                          "Rows Removed by Index Recheck": 1830710,
+                          "Exact Heap Blocks": 15581,
+                          "Lossy Heap Blocks": 22353,
+                          "Workers": [],
+                          "Plans": [
+                            {
+                              "Node Type": "Bitmap Index Scan",
+                              "Parent Relationship": "Outer",
+                              "Parallel Aware": false,
+                              "Async Capable": false,
+                              "Index Name": "items_status_created_at_idx",
+                              "Startup Cost": 0,
+                              "Total Cost": 13010.77,
+                              "Plan Rows": 516234,
+                              "Plan Width": 0,
+                              "Actual Startup Time": 97.595,
+                              "Actual Total Time": 97.598,
+                              "Actual Rows": 516314,
+                              "Actual Loops": 1,
+                              "Index Cond": "((status = 1) AND (created_at < '2021-05-01 00:00:00'::timestamp without time zone))",
+                              "Workers": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "Planning Time": 2.14,
+    "Triggers": [],
+    "JIT": {
+      "Functions": 37,
+      "Options": {
+        "Inlining": false,
+        "Optimization": false,
+        "Expressions": true,
+        "Deforming": true
+      },
+      "Timing": {
+        "Generation": 3.632,
+        "Inlining": 0,
+        "Optimization": 2.234,
+        "Emission": 15.369,
+        "Total": 21.235
+      }
+    },
+    "Execution Time": 2830.83
+  }
+]
