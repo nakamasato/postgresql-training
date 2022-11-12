@@ -447,6 +447,8 @@ docker exec -i postgres psql -U postgres test_db -c "drop INDEX IF EXISTS items_
 Run the query:
 ```sql
 docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i join item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+
                                                                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=35.16..1061.27 rows=30 width=45) (actual time=7470.450..7470.455 rows=30 loops=1)
@@ -493,6 +495,7 @@ Rows Removed by Filter: `1559539`
 You can see the result with the query without either of the before or after `OR` ([ref](https://dba.stackexchange.com/questions/241591/postgres-choosing-a-filter-instead-of-index-cond-when-or-is-involved)):
 
 Only `i.created_at < '2022-01-01'`: `53ms`
+Only `(i.created_at < '2022-01-01' )`: `53ms`
 
 <details>
 
