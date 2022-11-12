@@ -15,7 +15,7 @@ DEFAULT_END_DATE = datetime.datetime(2022, 1, 1, 00, 00)
 CHUNKSIZE = 100
 
 
-def generate_items(n, start_date = DEFAULT_START_DATE, end_date = DEFAULT_END_DATE):
+def generate_items(n, start_date=DEFAULT_START_DATE, end_date=DEFAULT_END_DATE):
     rows = []
     for i in range(n):
         item_id = generate_id()
@@ -33,7 +33,7 @@ def generate_items(n, start_date = DEFAULT_START_DATE, end_date = DEFAULT_END_DA
     return rows
 
 
-def generate_categories(n, start_date = DEFAULT_START_DATE, end_date = DEFAULT_END_DATE):
+def generate_categories(n, start_date=DEFAULT_START_DATE, end_date=DEFAULT_END_DATE):
     rows = []
     for i in range(n):
         category_id = f"category-{i}"
@@ -87,7 +87,7 @@ def truncate():
                 cur.execute(f"truncate {table} CASCADE;")
 
 
-def generate_item_categories(start_date = DEFAULT_START_DATE, end_date = DEFAULT_END_DATE):
+def generate_item_categories(start_date=DEFAULT_START_DATE, end_date=DEFAULT_END_DATE):
     rows = []
     category_ids = get_category_ids()
     for iid in get_item_ids_as_generator():
