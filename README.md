@@ -5,7 +5,7 @@
 1. Run container
 
     ```
-    docker-compose -f docker-compose.postgres.yml up -d
+    docker-compose -f docker-compose.yml up -d
     ```
 
 1. Update schema (drop & create)
