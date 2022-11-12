@@ -16,7 +16,7 @@ jobs:
 
       - name: start postgres
         run: |
-          docker-compose up -d docker-compose.postgres.yml
+          docker-compose -f docker-compose.postgres.yml up -d
           while ! docker-compose ps | grep healthy; do echo 'postgres not ready. sleeping 3 sec'; sleep 3; done
           echo 'postgres is ready!'
 
