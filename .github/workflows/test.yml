@@ -29,6 +29,9 @@ jobs:
       #     while ! docker-compose ps | grep healthy; do echo 'postgres not ready. sleeping 3 sec'; sleep 3; done
       #     echo 'postgres is ready!'
 
+      - name: load schema
+        run: docker exec -i postgres psql -U postgres test_db < test_table.sql
+
       - name: install dependencies
         run: pip install -r requirements.txt
 
