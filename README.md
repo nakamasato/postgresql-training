@@ -160,7 +160,7 @@
 `EXPLAIN`:
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE ic.category_id IN ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=637.58..637.66 rows=30 width=45)
@@ -179,7 +179,7 @@ docker exec -i postgres psql -U postgres test_db -c "explain select i.id, i.crea
 `EXPLAIN ANALYZE`:
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=637.58..637.66 rows=30 width=45) (actual time=4.946..4.949 rows=30 loops=1)
@@ -206,7 +206,7 @@ docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id
 `EXPLAIN`:
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE ic.category_id IN ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                                               QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=5886.99..5890.44 rows=30 width=45)
@@ -227,7 +227,7 @@ docker exec -i postgres psql -U postgres test_db -c "explain select i.id, i.crea
 `EXPLAIN ANALYZE`:
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
 
                                                                                               QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -272,7 +272,7 @@ LIMIT 30
 
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
 
                                                                                               QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -308,7 +308,7 @@ docker exec -i postgres psql -U postgres test_db -c "CREATE INDEX IF NOT EXISTS 
 ```
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                                             QUERY PLAN
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=3732.32..3732.40 rows=30 width=45) (actual time=43.179..43.184 rows=30 loops=1)
@@ -355,7 +355,7 @@ docker exec -i postgres psql -U postgres test_db -c "CREATE INDEX IF NOT EXISTS 
 ```
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at > '2021-10-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=22.44..675.08 rows=30 width=45) (actual time=5.170..5.173 rows=30 loops=1)
@@ -447,7 +447,7 @@ docker exec -i postgres psql -U postgres test_db -c "drop INDEX IF EXISTS items_
 Run the query:
 ```sql
 docker exec -i postgres psql -U postgres test_db -c "EXPLAIN ANALYZE SELECT i.id, i.created_at FROM items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND ic.category_id IN ('category-1', 'category-2', 'category-3') AND (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND ic.category_id in ('category-1', 'category-2', 'category-3') and (i.created_at < '2022-01-01' OR (i.created_at = '2022-01-01' AND i.id < 'test') ) ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
 
                                                                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -607,7 +607,7 @@ LIMIT 30
 ### Original query seq scan 5s
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id WHERE i.status in (1) AND i.created_at < '2022-01-01' order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i JOIN item_categories ic ON i.id = ic.item_id WHERE i.status in (1) AND i.created_at < '2022-01-01' ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                             QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=502562.15..502565.65 rows=30 width=45) (actual time=4724.550..5017.816 rows=30 loops=1)
@@ -644,7 +644,7 @@ This query is slow because sequential scan reads a lot of data and most of them 
 If you move the time condition, postgresl uses bitmap index scan, but still
 
 ```sql
-docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i join item_categories ic on i.id = ic.item_id AND i.status in (1) AND i.created_at < '2021-05-01' order by i.created_at desc, i.id desc limit 30"
+docker exec -i postgres psql -U postgres test_db -c "explain analyze select i.id, i.created_at from items i JOIN item_categories ic ON i.id = ic.item_id AND i.status in (1) AND i.created_at < '2021-05-01' ORDER BY i.created_at DESC, i.id DESC LIMIT 30"
                                                                                      QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=467652.66..467656.16 rows=30 width=45) (actual time=4109.457..4374.930 rows=30 loops=1)
