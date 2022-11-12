@@ -7,15 +7,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
+    # services:
+    #   postgres:
+    #     image: postgres
+    #     env:
+    #       POSTGRES_PASSWORD: postgres
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_DB: test_db
+    #     ports:
+    #       - 5432:5432
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -23,11 +23,12 @@ jobs:
           python-version: "3.9"
           cache: 'pip'
 
-      # - name: start postgres
-      #   run: |
-      #     docker-compose -f docker-compose.yml up -d
-      #     while ! docker-compose ps | grep healthy; do echo 'postgres not ready. sleeping 3 sec'; sleep 3; done
-      #     echo 'postgres is ready!'
+      - name: start postgres
+        timeout-minutes: 5
+        run: |
+          docker-compose up -d
+          while ! docker-compose ps | grep healthy; do echo 'postgres not ready. sleeping 3 sec'; sleep 3; done
+          echo 'postgres is ready!'
 
       - name: load schema
         run: docker exec -i postgres psql -U postgres test_db < test_table.sql
