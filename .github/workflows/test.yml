@@ -27,7 +27,7 @@ jobs:
         timeout-minutes: 5
         run: |
           docker-compose up -d
-          while ! docker-compose ps | grep healthy; do echo 'postgres not ready. sleeping 3 sec'; sleep 3; done
+          while ! docker-compose ps | grep healthy; do docker-compose ps; echo 'postgres not ready. sleeping 3 sec'; sleep 3; done
           echo 'postgres is ready!'
 
       - name: load schema
