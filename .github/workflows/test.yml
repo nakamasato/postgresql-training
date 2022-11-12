@@ -1,0 +1,30 @@
+name: test
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/test.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+          cache: 'pip'
+
+      - name: start postgres
+        run: |
+          docker-compose up -d docker-compose.postgres.yml
+          while ! docker-compose ps | grep healthy; do echo 'postgres not ready. sleeping 3 sec'; sleep 3; done
+          echo 'postgres is ready!'
+
+      - name: install dependencies
+        run: pip install -r requirements.txt
+
+      - name: run
+        run: python generate_data.py -i 10000
+
+      - name: check
+        run: test $(docker exec -i postgres psql -U postgres test_db -c "\copy (select count(*) from items) to STDOUT") = "10000"
