@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/test.yml
+      - docker-compose.yml
+      - '*.py'
 jobs:
   test:
     runs-on: ubuntu-latest
