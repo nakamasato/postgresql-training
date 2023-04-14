@@ -6,6 +6,7 @@ on:
       - .github/workflows/test.yml
       - docker-compose.yml
       - '*.py'
+      - requirements.txt
 jobs:
   test:
     runs-on: ubuntu-latest
