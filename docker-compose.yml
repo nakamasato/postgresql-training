@@ -3,7 +3,7 @@ version: '3'
 services:
   db:
     container_name: postgres
-    image: postgres:15
+    image: postgres:16
     volumes:
       - ./docker/pg:/var/lib/postgresql
     environment:
