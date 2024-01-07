@@ -1,5 +1,8 @@
 ## Explain
 
+> [!NOTE]
+> If you are absolutely new to EXPLAIN, you should start with [Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html).
+
 ### i=10000,c=20
 
 `EXPLAIN`:
