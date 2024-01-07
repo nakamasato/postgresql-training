@@ -4,9 +4,9 @@
 
 1. [Prepara Data](docs/prepare-data.md)
 1. [EXPLAIN](docs/explain.md)
-1. [Example 01](docs/performance-tuning-example-01.md)
-1. [Example 02](docs/performance-tuning-example-02.md)
-1. [Example 03](docs/performance-tuning-example-03.md)
+1. [Example 01: Reduce seq scan + rows removed by filter by adding index](docs/performance-tuning-example-01.md)
+1. [Example 02: Multicolumn index + row-wise comparison](docs/performance-tuning-example-02.md)
+1. [Example 03: Reduce seq scan by adding index](docs/performance-tuning-example-03.md)
 
 # References
 1. [Distinguishing Access and Filter-Predicates](https://use-the-index-luke.com/sql/explain-plan/postgresql/filter-predicates)
